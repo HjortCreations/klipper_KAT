@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ######################################################################
-# KAT - GENERATE INPUT SHAPER GRAPH Y
+# KAT - GENERATE RESONANCE SHAPER GRAPH Y
 #
 # Finds the newest /tmp/resonances_y_*.csv file and generates a PNG
 # using Klipper's calibrate_shaper.py script.
