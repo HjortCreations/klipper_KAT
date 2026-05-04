@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ######################################################################
-# KAT - GENERATE INPUT SHAPER GRAPH X
+# KAT - GENERATE RESONANCE SHAPER GRAPH X
 #
 # Finds the newest /tmp/resonances_x_*.csv file and generates a PNG
 # using Klipper's calibrate_shaper.py script.
@@ -11,7 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 source "${SCRIPT_DIR}/kat-common.sh"
 
-report_status "Generating X input shaper graph"
+report_status "Generating X resonance shaper graph"
 
 ensure_output_dir
 
