@@ -11,7 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")" >/dev/null 2>&1 && pwd)"
 source "${SCRIPT_DIR}/kat-common.sh"
 
-report_status "Generating Y input shaper graph"
+report_status "Generating Y resonance shaper graph"
 
 ensure_output_dir
 
