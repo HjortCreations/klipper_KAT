@@ -6,24 +6,134 @@ The goal is not to replace your printer configuration. Your `printer.cfg` should
 
 KAT defines how the machine is used.
 
-It provides a consistent operating layer for start print, end print, pause/resume, material-aware behavior, air handling, safe parking, calibration helpers, and resonance graph tooling.
-
----
-
-## Core idea
-
-Firmware gives us the possibilities.
-
-KAT should be the standardized way we use them.
-
-KAT is designed around one principle:
-
 ```text
 printer.cfg = what the machine is
 KAT         = how the machine is operated
 ```
 
-This means KAT should work across many different Klipper/Kalico machines without requiring every user to rewrite the same basic macros from scratch.
+---
+
+## Installation
+
+The recommended installation keeps the full Git repository on the machine, while exposing only the actual KAT config folder to Klipper.
+
+This gives the user a clean include path and still allows KAT to be updated through Git or Moonraker.
+
+### 1. Clone KAT
+
+SSH into the printer host and run:
+
+```bash
+cd ~/printer_data/config
+git clone https://github.com/HjortCreations/klipper_KAT.git
+```
+
+### 2. Create the KAT symlink
+
+Create a symlink so Klipper can include KAT using a clean path:
+
+```bash
+ln -sfn klipper_KAT/KAT KAT
+```
+
+Expected layout:
+
+```text
+~/printer_data/config/
+├─ printer.cfg
+├─ klipper_KAT/          <- full Git repository
+│  ├─ README.md
+│  ├─ moonraker_example.cfg
+│  └─ KAT/
+│     ├─ core_features.cfg
+│     ├─ variables.cfg
+│     ├─ start_macro.cfg
+│     ├─ pause_resume.cfg
+│     └─ scripts/
+└─ KAT -> klipper_KAT/KAT
+```
+
+### 3. Include KAT in `printer.cfg`
+
+Add this single line to your existing `printer.cfg`:
+
+```ini
+[include KAT/core_features.cfg]
+```
+
+Restart Klipper.
+
+---
+
+## Advanced features
+
+Core KAT can run without advanced shell-based features.
+
+Advanced features require `gcode_shell_command`.
+
+Advanced features currently include:
+
+```text
+KAT_TEST_SHELL_COMMAND
+KAT_TEST_RESONANCES_X
+KAT_TEST_RESONANCES_Y
+KAT_TEST_RESONANCES_Z
+KAT_GENERATE_BELT_TENSION_GRAPH
+```
+
+To enable advanced features, open:
+
+```text
+~/printer_data/config/KAT/core_features.cfg
+```
+
+and uncomment:
+
+```ini
+#[include KAT/advanced_features.cfg]
+```
+
+so it becomes:
+
+```ini
+[include KAT/advanced_features.cfg]
+```
+
+If Klipper fails to load with an error about `[gcode_shell_command ...]`, install `gcode_shell_command` before enabling advanced features.
+
+Reference:
+
+```text
+https://github.com/th33xitus/kiauh/blob/master/docs/gcode_shell_command.md
+```
+
+After enabling advanced features and restarting Klipper, test shell command support from the console:
+
+```ini
+KAT_TEST_SHELL_COMMAND
+```
+
+---
+
+## Moonraker update manager
+
+KAT can be added to Moonraker's update manager.
+
+Copy the section from:
+
+```text
+moonraker_example.cfg
+```
+
+into your `moonraker.conf`.
+
+Expected update-manager path:
+
+```text
+~/printer_data/config/klipper_KAT
+```
+
+After editing `moonraker.conf`, restart Moonraker.
 
 ---
 
@@ -31,25 +141,45 @@ This means KAT should work across many different Klipper/Kalico machines without
 
 KAT expects a reasonably modern Klipper or Kalico setup.
 
-### Required
+Core KAT provides and uses common Klipper modules such as:
 
-* `[respond]`
-* `[pause_resume]`
-* `[display_status]`
-* `gcode_shell_command`
+```ini
+[respond]
+[pause_resume]
+[display_status]
+[virtual_sdcard]
+[force_move]
+[idle_timeout]
+[exclude_object]
+[skew_correction]
+[gcode_arcs]
+```
 
-`gcode_shell_command` is treated as a standard KAT requirement. KAT will use it for built-in tooling such as input shaper and belt tension graph generation from the UI/console.
+Advanced features require:
 
-### Recommended
+```text
+gcode_shell_command
+```
 
-* `[bed_mesh]`
-* `QUAD_GANTRY_LEVEL` or `Z_TILT_ADJUST`, where applicable
-* Filament sensors, where applicable
-* A clearly defined nozzle wipe macro if using nozzle-based probing
+Resonance graph generation also requires machine-specific resonance configuration in `printer.cfg`, normally including:
+
+```ini
+[resonance_tester]
+```
+
+and an accelerometer configuration such as:
+
+```ini
+[adxl345]
+```
+
+or equivalent.
+
+KAT does not define accelerometers or resonance tester hardware. That remains machine-specific and belongs in `printer.cfg`.
 
 ---
 
-## What KAT should handle
+## What KAT handles
 
 ### START_PRINT
 
@@ -68,56 +198,44 @@ final nozzle heat
 prime / wipe
 ```
 
-Important behavior:
-
-* The bed is heated early with `M190` before homing, leveling, probing, and meshing.
-* QGL or Z Tilt is selected automatically if available.
-* Z is always re-homed after QGL/Z Tilt because the reference plane has changed.
-* Beacon gets its own contact calibration path.
-* Other probes use normal `G28 Z`, allowing the printer configuration to decide how Z homing works.
-* Optional nozzle wipe can be enabled before the final Z home for TAP, piezo, Beacon contact, or other nozzle-based probing systems.
-
 ### PAUSE / RESUME / CANCEL
 
 KAT pause handling is designed for real print recovery:
 
-* Save hotend target temperature.
-* Save part cooling fan speed.
-* Pause using Klipper's native pause state.
-* Retract only when the extruder can actually extrude.
-* Use safe Z-hop and named park helpers.
-* Restore hotend temperature before resuming motion.
-* Restore part cooling fan before resuming motion.
-* Restore pause retract if one was applied.
-* Check enabled filament switch sensors before resume.
-* Avoid automatic load/unload behavior unless the user explicitly builds that into their own workflow.
+- Save hotend target temperature.
+- Save part cooling fan speed.
+- Pause using Klipper's native pause state.
+- Retract only when the extruder can actually extrude.
+- Use safe Z-hop and named park helpers.
+- Restore hotend temperature before resuming motion.
+- Restore part cooling fan before resuming motion.
+- Restore pause retract if one was applied.
+- Check enabled filament switch sensors before resume.
+- Avoid automatic load/unload behavior unless the user explicitly configures that behavior.
 
 ### END_PRINT
 
-KAT end print handling should use shared helpers rather than duplicating movement logic:
+KAT end print handling uses shared helpers rather than duplicating movement logic:
 
-* Turn off heaters safely.
-* Retract if possible.
-* Move Z to a safe end-print height.
-* Park the toolhead using a named park position.
-* Turn off part cooling.
-* Handle filter and exhaust helpers.
-* Restore idle timeout.
-* Clear KAT print state.
+- Turn off heaters safely.
+- Retract if possible.
+- Move Z to a safe end-print height.
+- Park the toolhead using a named park position.
+- Turn off part cooling.
+- Handle filter and exhaust helpers.
+- Restore idle timeout.
+- Clear KAT print state.
 
 ### Resonance and belt tooling
 
-KAT should include graph generation as a standard feature, not as an afterthought.
-
-Planned standard commands:
+When advanced features are enabled, KAT can run resonance tests and generate graphs from the UI/console:
 
 ```ini
-KAT_GENERATE_SHAPER_GRAPH_X
-KAT_GENERATE_SHAPER_GRAPH_Y
+KAT_TEST_RESONANCES_X
+KAT_TEST_RESONANCES_Y
+KAT_TEST_RESONANCES_Z
 KAT_GENERATE_BELT_TENSION_GRAPH
 ```
-
-These commands should use `gcode_shell_command` to run KAT shell scripts that generate PNG graphs from Klipper resonance CSV files.
 
 Expected output location:
 
@@ -125,59 +243,38 @@ Expected output location:
 ~/printer_data/config/input_shaper/
 ```
 
-KAT should report the created graph path in the console after generation.
+If `[resonance_tester]` is not configured, KAT prints a help message and points to:
 
-Whether the image can be opened directly from the UI depends on the frontend and how the file browser exposes the output folder, but graph generation itself should be available from the normal KAT workflow.
+```text
+https://www.klipper3d.org/Measuring_Resonances.html
+```
 
 ---
 
 ## Current project structure
 
-The working structure is centered around the `KAT/` folder:
+The runtime Klipper configuration is centered around the `KAT/` folder:
 
 ```text
 KAT/
+    core_features.cfg          Main KAT core entrypoint
+    klipper_features.cfg       Baseline Klipper modules used by KAT
     variables.cfg              Shared KAT variables and user settings
     temperature_control.cfg    Temperature command overrides and helpers
-    start_macro.cfg            START_PRINT and start-related helpers
-    pause_resume.cfg           PAUSE, RESUME, CANCEL_PRINT and filament events
     helpers.cfg                Shared movement, homing, park, and safety helpers
-    end_macro.cfg              END_PRINT flow
     filter.cfg                 Filter and exhaust helpers
     prime.cfg                  Prime and wipe helpers
-    resonance_tools.cfg        Input shaper and belt graph commands
-
-scripts/
-    kat-common.sh
-    generate-shaper-graph-x.sh
-    generate-shaper-graph-y.sh
-    generate-belt-tension-graph.sh
-
-docs/
-    usage and design notes
+    start_macro.cfg            START_PRINT and start-related helpers
+    end_macro.cfg              END_PRINT flow
+    pause_resume.cfg           PAUSE, RESUME, CANCEL_PRINT and filament events
+    advanced_features.cfg      Shell-command based advanced features
+    resonance_tools.cfg        Resonance and belt graph commands
+    scripts/                   Shell scripts used by advanced features
 ```
 
-Some files may still be work in progress while the core architecture is being finalized.
+The repository root may also contain documentation, examples, update-manager examples, and installation helpers.
 
----
-
-## Installation concept
-
-The intended include style is:
-
-```ini
-[include KAT/variables.cfg]
-[include KAT/temperature_control.cfg]
-[include KAT/helpers.cfg]
-[include KAT/filter.cfg]
-[include KAT/prime.cfg]
-[include KAT/start_macro.cfg]
-[include KAT/end_macro.cfg]
-[include KAT/pause_resume.cfg]
-[include KAT/resonance_tools.cfg]
-```
-
-The exact include list may change while the project is still being structured.
+Those files are not included directly by Klipper.
 
 ---
 
@@ -191,104 +288,19 @@ KAT uses one shared variable macro:
 
 User-adjustable values should live there.
 
-Examples:
-
-```ini
-variable_default_material: '"PLA"'
-variable_start_preheat_temp: 150.0
-variable_start_preheat_minutes: 0.0
-variable_start_wipe_before_z_home: False
-variable_pause_park_position: '"front_center"'
-variable_end_print_park_position: '"front_center"'
-```
-
 The goal is that users should not need to edit the logic macros for normal configuration.
 
 ---
 
 ## Design principles
 
-### Do not duplicate firmware functionality
+KAT should orchestrate Klipper features, not replace them.
 
-If Klipper already has a proper firmware-level feature, KAT should not rebuild it in macros.
+Machine-specific hardware behavior should stay in `printer.cfg` or separate machine config files.
 
-Examples:
-
-* Axis twist compensation should use Klipper's `[axis_twist_compensation]` module.
-* Bed mesh should use Klipper's `[bed_mesh]` module.
-* QGL and Z Tilt should use Klipper's native mechanisms.
-
-KAT should orchestrate these features, not replace them.
-
-### Let the printer config own hardware behavior
-
-KAT should not try to take over every hardware-specific detail.
-
-For example:
-
-* If a machine has `[homing_override]`, KAT should respect it.
-* If a machine has a custom wipe routine, KAT should call it, not hardcode wiper coordinates.
-* If a machine has Beacon, KAT can use Beacon-specific commands.
-* If a machine does not have Beacon, KAT should fall back to standard Klipper behavior.
-
-### Prefer helpers over duplicated math
-
-Shared calculations should live in helpers:
-
-* safe Z-hop
-* named park positions
-* end-print Z movement
-* conditional homing
-* park feedrate calculation
-
-Print macros should orchestrate the flow, not recalculate everything themselves.
-
-### Be informative, not annoying
-
-KAT should provide useful console messages, especially when something is skipped because the printer does not have that capability.
-
-Examples:
-
-```text
-No QGL or Z_TILT configured, skipping
-No bed_mesh configured, skipping
-FILTER_ON not found, skipping
-```
-
-### Avoid unwanted automatic filament movement
+KAT should provide useful console messages when something is skipped because the printer does not have that capability.
 
 KAT should not automatically load, unload, purge, or perform aggressive filament handling unless the user explicitly configures that behavior.
-
-Sensors should report events. KAT should pause, save state, inform the user, and resume safely.
-
----
-
-## Roadmap
-
-### Core
-
-* Shared KAT variables
-* Temperature control helpers
-* START_PRINT
-* END_PRINT
-* PAUSE / RESUME / CANCEL_PRINT
-* Safe movement helpers
-* Filter and exhaust helpers
-* Prime and wipe helpers
-
-### Tooling
-
-* Input shaper graph generation
-* Belt tension graph generation
-* UI/console macros using `gcode_shell_command`
-
-### Later
-
-* Layer pause helpers
-* Calibration helpers
-* Better documentation examples
-* Example slicer start/end gcode
-* Example printer configurations
 
 ---
 
