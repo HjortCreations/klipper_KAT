@@ -11,6 +11,30 @@ printer.cfg = what the machine is
 KAT         = how the machine is operated
 ```
 
+Firmware gives us the possibilities. KAT should be the standardized way we use them.
+
+---
+
+## What KAT is
+
+KAT is an operating layer for Klipper/Kalico printers.
+
+It is designed to make common printer workflows more consistent, reusable, and easier to maintain across different machines and printer configurations.
+
+KAT focuses on:
+
+- START_PRINT
+- END_PRINT
+- PAUSE / RESUME / CANCEL_PRINT
+- safe parking and movement helpers
+- material-aware print preparation
+- filter and exhaust helpers
+- prime and wipe helpers
+- resonance and belt graph tooling
+- clear console feedback when features are missing or skipped
+
+KAT should orchestrate existing Klipper/Kalico features, not replace the printer's hardware configuration.
+
 ---
 
 ## Installation
@@ -43,6 +67,7 @@ Expected layout:
 ├─ printer.cfg
 ├─ klipper_KAT/          <- full Git repository
 │  ├─ README.md
+│  ├─ include_example.cfg
 │  ├─ moonraker_example.cfg
 │  └─ KAT/
 │     ├─ core_features.cfg
@@ -65,9 +90,58 @@ Restart Klipper.
 
 ---
 
-## Advanced features
+## Updating KAT
 
-Core KAT can run without advanced shell-based features.
+If KAT was installed using the recommended Git clone method, it can be updated with:
+
+```bash
+cd ~/printer_data/config/klipper_KAT
+git pull
+```
+
+After updating, restart Klipper.
+
+KAT can also be added to Moonraker's update manager. See the `moonraker_example.cfg` file in this repository.
+
+---
+
+## Moonraker update manager
+
+KAT can be added to Moonraker's update manager.
+
+Copy the section from:
+
+```text
+moonraker_example.cfg
+```
+
+into your `moonraker.conf`.
+
+Expected update-manager path:
+
+```text
+~/printer_data/config/klipper_KAT
+```
+
+After editing `moonraker.conf`, restart Moonraker.
+
+---
+
+## Core and advanced features
+
+KAT is split into core and advanced features.
+
+### Core features
+
+Core features are loaded by:
+
+```ini
+[include KAT/core_features.cfg]
+```
+
+Core KAT includes the normal print workflow and helper macros.
+
+### Advanced features
 
 Advanced features require `gcode_shell_command`.
 
@@ -115,28 +189,6 @@ KAT_TEST_SHELL_COMMAND
 
 ---
 
-## Moonraker update manager
-
-KAT can be added to Moonraker's update manager.
-
-Copy the section from:
-
-```text
-moonraker_example.cfg
-```
-
-into your `moonraker.conf`.
-
-Expected update-manager path:
-
-```text
-~/printer_data/config/klipper_KAT
-```
-
-After editing `moonraker.conf`, restart Moonraker.
-
----
-
 ## Requirements
 
 KAT expects a reasonably modern Klipper or Kalico setup.
@@ -179,6 +231,82 @@ KAT does not define accelerometers or resonance tester hardware. That remains ma
 
 ---
 
+## Recommended machine-specific features
+
+KAT can use these features when available:
+
+```text
+[bed_mesh]
+[quad_gantry_level]
+[z_tilt]
+[resonance_tester]
+filament sensors
+custom nozzle wipe macros
+Beacon / TAP / piezo / other probe systems
+```
+
+KAT should orchestrate these features, not replace the printer's hardware configuration.
+
+---
+
+## Expected fan and sensor names
+
+Some KAT helpers look for standard names.
+
+### Filter fan
+
+KAT expects the filter fan to be named:
+
+```ini
+[fan_generic filter]
+```
+
+Used by:
+
+```text
+FILTER_ON
+FILTER_OFF
+START_PRINT / END_PRINT helpers when available
+```
+
+### Exhaust fan
+
+KAT expects the exhaust fan to be named:
+
+```ini
+[fan_generic exhaust]
+```
+
+Used by:
+
+```text
+EXHAUST_ON
+EXHAUST_OFF
+START_PRINT / END_PRINT helpers when available
+```
+
+### Filament events
+
+KAT expects filament sensors to call KAT event macros instead of letting the sensor directly pause the printer.
+
+Example runout behavior:
+
+```ini
+runout_gcode:
+    FILAMENT_RUNOUT
+```
+
+Example clog behavior:
+
+```ini
+runout_gcode:
+    FILAMENT_CLOG
+```
+
+See `include_example.cfg` for examples.
+
+---
+
 ## What KAT handles
 
 ### START_PRINT
@@ -197,6 +325,15 @@ KAT_BED_MESH
 final nozzle heat
 prime / wipe
 ```
+
+Important behavior:
+
+- The bed is heated early with `M190` before homing, leveling, probing, and meshing.
+- QGL or Z Tilt is selected automatically if available.
+- Z is always re-homed after QGL/Z Tilt because the reference plane has changed.
+- Beacon gets its own contact calibration path where applicable.
+- Other probes use normal `G28 Z`, allowing the printer configuration to decide how Z homing works.
+- Optional nozzle wipe can be enabled before the final Z home for TAP, piezo, Beacon contact, or other nozzle-based probing systems.
 
 ### PAUSE / RESUME / CANCEL
 
@@ -251,6 +388,27 @@ https://www.klipper3d.org/Measuring_Resonances.html
 
 ---
 
+## KAT status and version information
+
+KAT may expose a small status/about command such as:
+
+```ini
+KAT_ABOUT
+```
+
+A typical console message can look like:
+
+```text
+KAT 0.4.0-dev active
+Klipper Automation Toolkit
+Sponsored and maintained by Hjort Creations
+Repository: https://github.com/HjortCreations/klipper_KAT
+```
+
+This makes it easier to confirm that KAT is loaded and helps with support and troubleshooting.
+
+---
+
 ## Current project structure
 
 The runtime Klipper configuration is centered around the `KAT/` folder:
@@ -288,19 +446,117 @@ KAT uses one shared variable macro:
 
 User-adjustable values should live there.
 
+Examples:
+
+```ini
+variable_default_material: '"PLA"'
+variable_start_preheat_temp: 150.0
+variable_start_preheat_minutes: 0.0
+variable_start_wipe_before_z_home: False
+variable_pause_park_position: '"front_center"'
+variable_end_print_park_position: '"front_center"'
+```
+
 The goal is that users should not need to edit the logic macros for normal configuration.
 
 ---
 
 ## Design principles
 
-KAT should orchestrate Klipper features, not replace them.
+### Do not duplicate firmware functionality
 
-Machine-specific hardware behavior should stay in `printer.cfg` or separate machine config files.
+If Klipper already has a proper firmware-level feature, KAT should not rebuild it in macros.
 
-KAT should provide useful console messages when something is skipped because the printer does not have that capability.
+Examples:
+
+- Axis twist compensation should use Klipper's `[axis_twist_compensation]` module.
+- Bed mesh should use Klipper's `[bed_mesh]` module.
+- QGL and Z Tilt should use Klipper's native mechanisms.
+
+KAT should orchestrate these features, not replace them.
+
+### Let the printer config own hardware behavior
+
+KAT should not try to take over every hardware-specific detail.
+
+For example:
+
+- If a machine has `[homing_override]`, KAT should respect it.
+- If a machine has a custom wipe routine, KAT should call it, not hardcode wiper coordinates.
+- If a machine has Beacon, KAT can use Beacon-specific commands.
+- If a machine does not have Beacon, KAT should fall back to standard Klipper behavior.
+
+### Prefer helpers over duplicated math
+
+Shared calculations should live in helpers:
+
+- safe Z-hop
+- named park positions
+- end-print Z movement
+- conditional homing
+- park feedrate calculation
+
+Print macros should orchestrate the flow, not recalculate everything themselves.
+
+### Be informative, not annoying
+
+KAT should provide useful console messages, especially when something is skipped because the printer does not have that capability.
+
+Examples:
+
+```text
+No QGL or Z_TILT configured, skipping
+No bed_mesh configured, skipping
+FILTER_ON not found, skipping
+```
+
+### Avoid unwanted automatic filament movement
 
 KAT should not automatically load, unload, purge, or perform aggressive filament handling unless the user explicitly configures that behavior.
+
+Sensors should report events. KAT should pause, save state, inform the user, and resume safely.
+
+---
+
+## About Hjort Creations
+
+KAT is developed, sponsored, and maintained by Hjort Creations.
+
+Hjort Creations is a Swedish additive manufacturing company working with large-format FDM, machine development, Klipper/Kalico workflows, and industrial 3D printing applications.
+
+Read more:
+
+```text
+https://hjortcreations.se
+```
+
+---
+
+## Credits and inspiration
+
+KAT is built on top of the Klipper/Kalico ecosystem and is inspired by the work, ideas, documentation, and tooling from several open-source projects and communities.
+
+Special thanks and inspiration from:
+
+- Klipper
+- Kalico
+- Klipper-Adaptive-Meshing-Purging
+- RatOS
+- KIAUH
+- Mainsail
+- Moonraker
+- Fluidd
+- Beacon
+- Voron
+- The wider Klipper macro and 3D printing community
+
+KAT is not affiliated with or officially endorsed by these projects unless explicitly stated. They are listed here because their work and ideas have helped shape how KAT is designed.
+
+Project repository:
+
+```text
+https://github.com/HjortCreations/klipper_KAT
+```
 
 ---
 
