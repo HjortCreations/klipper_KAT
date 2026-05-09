@@ -72,8 +72,10 @@ Expected layout:
 │  └─ KAT/
 │     ├─ core_features.cfg
 │     ├─ variables.cfg
-│     ├─ start_macro.cfg
+│     ├─ start_print.cfg
 │     ├─ pause_resume.cfg
+│     ├─ end_print.cfg
+│     ├─ kat_helpers.cfg
 │     └─ scripts/
 └─ KAT -> klipper_KAT/KAT
 ```
@@ -87,6 +89,35 @@ Add this single line to your existing `printer.cfg`:
 ```
 
 Restart Klipper.
+
+### 4. Configure slicer START_PRINT parameters
+
+KAT reads these parameters from your slicer start G-code:
+
+**Recommended (send these):**
+
+- `EXTRUDER_TEMP` (first-layer nozzle temp)
+- `BED_TEMP` (first-layer bed temp)
+- `MATERIAL` (for airflow/material behavior, e.g. `PLA`, `PETG`, `ABS`)
+
+**Optional:**
+
+- `EXTRUDER_TEMP_OTHER` (stored by KAT for tooling/telemetry use)
+- `PREHEAT_MINUTES` (extra bed/chamber soak time after bed reaches target)
+
+If a value is missing, KAT uses safe defaults from `KAT/variables.cfg` (or built-in defaults).
+
+Example start G-code line in slicer:
+
+```gcode
+START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type]
+```
+
+Optional extended example:
+
+```gcode
+START_PRINT EXTRUDER_TEMP=[first_layer_temperature] EXTRUDER_TEMP_OTHER=[nozzle_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] PREHEAT_MINUTES=10
+```
 
 ---
 
@@ -109,21 +140,57 @@ KAT can also be added to Moonraker's update manager. See the `moonraker_example.
 
 KAT can be added to Moonraker's update manager.
 
-Copy the section from:
+Add this section directly to your `moonraker.conf`:
 
-```text
-moonraker_example.cfg
+```ini
+[update_manager klipper_KAT]
+type: git_repo
+path: ~/printer_data/config/klipper_KAT
+origin: https://github.com/HjortCreations/klipper_KAT.git
+primary_branch: main
+managed_services: klipper
 ```
 
-into your `moonraker.conf`.
+Then restart Moonraker:
 
-Expected update-manager path:
-
-```text
-~/printer_data/config/klipper_KAT
+```bash
+sudo systemctl restart moonraker
 ```
 
-After editing `moonraker.conf`, restart Moonraker.
+Quick check after restart:
+
+- Open Mainsail/Fluidd and verify `klipper_KAT` appears in Update Manager.
+- Run `ls -l ~/printer_data/config/KAT` and verify the symlink points to `klipper_KAT/KAT`.
+
+If you prefer, the same block is also available in `moonraker_example.cfg`.
+
+
+---
+
+## Safe onboarding (test without printing)
+
+Before using KAT in a real print, run these dry tests from the console.
+
+### Phase 1: cold motion-only test
+
+1. `G28`
+2. `PARK_TOOLHEAD POSITION=front_center`
+3. `END_PRINT`
+
+### Phase 2: pause/resume behavior test
+
+1. `PAUSE`
+2. `RESUME`
+
+Recommended setup for both phases:
+
+- No active print file
+- Start with a cold nozzle and no filament loaded
+- Keep one hand near emergency stop/power
+
+After Phase 1 and 2 pass, you can run a final heated check if desired.
+
+If any move is not suitable for your machine, tune KAT variables first in `KAT/variables.cfg`, especially park positions, margins, pause Z-hop, and resume filament check mode.
 
 ---
 
@@ -396,6 +463,14 @@ KAT may expose a small status/about command such as:
 KAT_ABOUT
 ```
 
+A quick sanity check command is also available:
+
+```ini
+KAT_SELFTEST
+```
+
+`KAT_SELFTEST` reports whether `PARK_TOOLHEAD`, `SAFE_PAUSE_Z_HOP`, and `END_PRINT` are loaded, which resume filament check mode is active, and how many `filament_switch_sensor` sections are found/enabled.
+
 A typical console message can look like:
 
 ```text
@@ -415,15 +490,16 @@ The runtime Klipper configuration is centered around the `KAT/` folder:
 
 ```text
 KAT/
+    about.cfg                  KAT status/about command
     core_features.cfg          Main KAT core entrypoint
     klipper_features.cfg       Baseline Klipper modules used by KAT
     variables.cfg              Shared KAT variables and user settings
     temperature_control.cfg    Temperature command overrides and helpers
-    helpers.cfg                Shared movement, homing, park, and safety helpers
-    filter.cfg                 Filter and exhaust helpers
+    fan_control.cfg            Filter and exhaust helpers
+    kat_helpers.cfg            Shared movement, homing, park, and safety helpers
     prime.cfg                  Prime and wipe helpers
-    start_macro.cfg            START_PRINT and start-related helpers
-    end_macro.cfg              END_PRINT flow
+    start_print.cfg            START_PRINT and start-related helpers
+    end_print.cfg              END_PRINT flow
     pause_resume.cfg           PAUSE, RESUME, CANCEL_PRINT and filament events
     advanced_features.cfg      Shell-command based advanced features
     resonance_tools.cfg        Resonance and belt graph commands
