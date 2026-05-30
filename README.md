@@ -39,9 +39,7 @@ KAT should orchestrate existing Klipper/Kalico features, not replace the printer
 
 ## Installation
 
-The recommended installation keeps the full Git repository on the machine, while exposing only the actual KAT config folder to Klipper.
-
-This gives the user a clean include path and still allows KAT to be updated through Git or Moonraker.
+Clone the Git repository directly as the `KAT` config folder. This gives Klipper a clean include path and still allows KAT to be updated through Git or Moonraker.
 
 ### 1. Clone KAT
 
@@ -49,15 +47,7 @@ SSH into the printer host and run:
 
 ```bash
 cd ~/printer_data/config
-git clone https://github.com/HjortCreations/klipper_KAT.git
-```
-
-### 2. Create the KAT symlink
-
-Create a symlink so Klipper can include KAT using a clean path:
-
-```bash
-ln -sfn klipper_KAT/KAT KAT
+git clone https://github.com/HjortCreations/klipper_KAT.git KAT
 ```
 
 Expected layout:
@@ -65,22 +55,27 @@ Expected layout:
 ```text
 ~/printer_data/config/
 ├─ printer.cfg
-├─ klipper_KAT/          <- full Git repository
-│  ├─ README.md
-│  ├─ include_example.cfg
-│  ├─ moonraker_example.cfg
-│  └─ KAT/
-│     ├─ core_features.cfg
-│     ├─ variables.cfg
-│     ├─ start_print.cfg
-│     ├─ pause_resume.cfg
-│     ├─ end_print.cfg
-│     ├─ kat_helpers.cfg
-│     └─ scripts/
-└─ KAT -> klipper_KAT/KAT
+└─ KAT/
+   ├─ README.md
+   ├─ include_example.cfg
+   ├─ moonraker_example.cfg
+   ├─ core_features.cfg
+   ├─ klipper_features.cfg
+   ├─ variables.cfg
+   ├─ about.cfg
+   ├─ temperature_control.cfg
+   ├─ kat_helpers.cfg
+   ├─ fan_control.cfg
+   ├─ prime.cfg
+   ├─ start_print.cfg
+   ├─ end_print.cfg
+   ├─ pause_resume.cfg
+   ├─ advanced_features.cfg
+   ├─ resonance_tools.cfg
+   └─ scripts/
 ```
 
-### 3. Include KAT in `printer.cfg`
+### 2. Include KAT in `printer.cfg`
 
 Add this single line to your existing `printer.cfg`:
 
@@ -90,7 +85,7 @@ Add this single line to your existing `printer.cfg`:
 
 Restart Klipper.
 
-### 4. Configure slicer START_PRINT parameters
+### 3. Configure slicer START_PRINT parameters
 
 KAT reads these parameters from your slicer start G-code:
 
@@ -126,7 +121,7 @@ START_PRINT EXTRUDER_TEMP=[first_layer_temperature] EXTRUDER_TEMP_OTHER=[nozzle_
 If KAT was installed using the recommended Git clone method, it can be updated with:
 
 ```bash
-cd ~/printer_data/config/klipper_KAT
+cd ~/printer_data/config/KAT
 git pull
 ```
 
@@ -143,9 +138,9 @@ KAT can be added to Moonraker's update manager.
 Add this section directly to your `moonraker.conf`:
 
 ```ini
-[update_manager klipper_KAT]
+[update_manager KAT]
 type: git_repo
-path: ~/printer_data/config/klipper_KAT
+path: ~/printer_data/config/KAT
 origin: https://github.com/HjortCreations/klipper_KAT.git
 primary_branch: main
 managed_services: klipper
@@ -159,8 +154,8 @@ sudo systemctl restart moonraker
 
 Quick check after restart:
 
-- Open Mainsail/Fluidd and verify `klipper_KAT` appears in Update Manager.
-- Run `ls -l ~/printer_data/config/KAT` and verify the symlink points to `klipper_KAT/KAT`.
+- Open Mainsail/Fluidd and verify `KAT` appears in Update Manager.
+- Run `ls ~/printer_data/config/KAT/core_features.cfg` and verify the file exists.
 
 If you prefer, the same block is also available in `moonraker_example.cfg`.
 
@@ -222,19 +217,7 @@ KAT_TEST_RESONANCES_Z
 KAT_GENERATE_BELT_TENSION_GRAPH
 ```
 
-To enable advanced features, open:
-
-```text
-~/printer_data/config/KAT/core_features.cfg
-```
-
-and uncomment:
-
-```ini
-#[include KAT/advanced_features.cfg]
-```
-
-so it becomes:
+To enable advanced features, add this separate line to `printer.cfg`:
 
 ```ini
 [include KAT/advanced_features.cfg]
@@ -486,10 +469,13 @@ This makes it easier to confirm that KAT is loaded and helps with support and tr
 
 ## Current project structure
 
-The runtime Klipper configuration is centered around the `KAT/` folder:
+The repository itself is installed as the `KAT/` config folder:
 
 ```text
 KAT/
+    README.md                  Project documentation
+    include_example.cfg        Example printer.cfg additions
+    moonraker_example.cfg      Example Moonraker update-manager section
     about.cfg                  KAT status/about command
     core_features.cfg          Main KAT core entrypoint
     klipper_features.cfg       Baseline Klipper modules used by KAT
@@ -506,9 +492,7 @@ KAT/
     scripts/                   Shell scripts used by advanced features
 ```
 
-The repository root may also contain documentation, examples, update-manager examples, and installation helpers.
-
-Those files are not included directly by Klipper.
+Documentation and example files are not included directly by Klipper.
 
 ---
 
