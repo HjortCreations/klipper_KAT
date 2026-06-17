@@ -381,7 +381,7 @@ Important behavior:
 - The bed is heated early with `M190` before homing, leveling, probing, and meshing.
 - QGL or Z Tilt is selected automatically if available.
 - Z is always re-homed after QGL/Z Tilt because the reference plane has changed.
-- Beacon gets its own contact calibration path where applicable.
+- When `[beacon]` is configured, the final Z home uses `G28 Z METHOD=CONTACT CALIBRATE=1`.
 - Other probes use normal `G28 Z`, allowing the printer configuration to decide how Z homing works.
 - Optional nozzle wipe can be enabled before the final Z home for TAP, piezo, Beacon contact, or other nozzle-based probing systems.
 
