@@ -378,7 +378,8 @@ prime / wipe
 
 Important behavior:
 
-- The bed is heated early with `M190` before homing, leveling, probing, and meshing.
+- The bed is prepared early before homing, leveling, probing, and meshing.
+- Machines without `[heater_bed]` load normally and receive external-bed prompts instead of M140/M190 errors.
 - QGL or Z Tilt is selected automatically if available.
 - Z is always re-homed after QGL/Z Tilt because the reference plane has changed.
 - When `[beacon]` is configured, the final Z home uses `G28 Z METHOD=CONTACT CALIBRATE=1`.
