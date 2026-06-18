@@ -166,6 +166,30 @@ If you prefer, the same block is also available in `moonraker_example.cfg`.
 
 Before using KAT in a real print, run these dry tests from the console.
 
+### Phase 0: verify motion motors
+
+With the machine powered but not printing, manually move the axes away from
+their end stops and run:
+
+```ini
+KAT_TEST_MOTORS
+```
+
+KAT discovers every configured `stepper_*` motion section and runs Klipper's
+`STEPPER_BUZZ` for each motor, one at a time. To test only a conventional axis
+or one exact config section, use:
+
+```ini
+KAT_TEST_MOTORS AXIS=X
+KAT_TEST_MOTORS AXIS=Z
+KAT_TEST_MOTOR STEPPER=stepper_z2
+```
+
+The unfiltered command also works with non-Cartesian stepper names such as
+`stepper_a`, `stepper_left`, and `stepper_bed`. Extruders and manual steppers
+are deliberately excluded. KAT refuses to run these tests while a print is
+active or paused.
+
 ### Phase 1: cold motion-only test
 
 1. `G28`
@@ -201,7 +225,8 @@ Core features are loaded by:
 [include KAT/core_features.cfg]
 ```
 
-Core KAT includes the normal print workflow and helper macros.
+Core KAT includes the normal print workflow, helper macros, and capability-aware
+diagnostic motor tests.
 
 ### Advanced features
 
@@ -483,6 +508,7 @@ KAT/
     temperature_control.cfg    Temperature command overrides and helpers
     fan_control.cfg            Filter and exhaust helpers
     kat_helpers.cfg            Shared movement, homing, park, and safety helpers
+    motor_tests.cfg            Capability-aware diagnostic motor tests
     prime.cfg                  Prime and wipe helpers
     start_print.cfg            START_PRINT and start-related helpers
     end_print.cfg              END_PRINT flow
