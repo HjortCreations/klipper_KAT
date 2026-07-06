@@ -216,7 +216,7 @@ Recommended setup for both phases:
 
 After Phase 1 and 2 pass, you can run a final heated check if desired.
 
-If any move is not suitable for your machine, tune KAT variables first in `KAT/variables.cfg`, especially park positions, margins, pause Z-hop, and resume filament check mode.
+If any move is not suitable for your machine, override KAT variables in your own `printer.cfg`, especially park positions, margins, pause Z-hop, skew profile, and resume filament check mode.
 
 ---
 
@@ -542,11 +542,15 @@ KAT uses one shared variable macro:
 [gcode_macro KAT]
 ```
 
-User-adjustable values should live there.
+User-adjustable values are defined there. On a normal Moonraker Update Manager install, the `KAT/` folder is managed and may be read-only. Put machine-specific overrides in your own `printer.cfg` after the KAT include lines instead of editing `KAT/variables.cfg`.
 
 Examples:
 
 ```ini
+[include KAT/core_features.cfg]
+[include KAT/advanced_features.cfg]
+
+[gcode_macro KAT]
 variable_default_material: '"PLA"'
 variable_start_preheat_temp: 150.0
 variable_start_preheat_minutes: 0.0
@@ -556,6 +560,8 @@ variable_pause_park_position: '"front_center"'
 variable_end_print_park_position: '"front_center"'
 variable_end_clear_skew: 1
 ```
+
+Only include the variables you want to change. KAT's defaults continue to supply the rest.
 
 The goal is that users should not need to edit the logic macros for normal configuration.
 
