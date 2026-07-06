@@ -40,7 +40,7 @@ echo ""
 echo "Output:"
 echo "${OUTPUT}"
 
-"${KAT_PYTHON}" "${GRAPH_ACCELEROMETER}" -c "${NEWLOWER}" "${NEWUPPER}" -o "${OUTPUT}"
+run_klipper_python_script "${GRAPH_ACCELEROMETER}" -c "${NEWLOWER}" "${NEWUPPER}" -o "${OUTPUT}"
 
 if [ "${EUID}" -eq 0 ]; then
     chown "${KAT_USERNAME}:${KAT_USERGROUP}" "${OUTPUT}" || true

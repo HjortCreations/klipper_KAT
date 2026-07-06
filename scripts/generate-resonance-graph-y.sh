@@ -28,7 +28,7 @@ echo ""
 echo "Output:"
 echo "${OUTPUT}"
 
-"${KAT_PYTHON}" "${CALIBRATE_SHAPER}" "${NEWY}" -o "${OUTPUT}"
+run_klipper_python_script "${CALIBRATE_SHAPER}" "${NEWY}" -o "${OUTPUT}"
 
 if [ "${EUID}" -eq 0 ]; then
     chown "${KAT_USERNAME}:${KAT_USERGROUP}" "${OUTPUT}" || true

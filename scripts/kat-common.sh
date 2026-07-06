@@ -89,6 +89,73 @@ detect_python() {
 
 : "${KAT_PYTHON:=$(detect_python)}"
 
+python_extra_path() {
+    if [ -x "${KAT_PYTHON}" ]; then
+        "${KAT_PYTHON}" -c 'import site; print(":".join(site.getsitepackages()))' 2>/dev/null || true
+    fi
+}
+
+python_has_modules() {
+    local python_path="$1"
+    local extra_path="$2"
+    shift 2
+
+    if [ ! -x "${python_path}" ]; then
+        return 1
+    fi
+
+    PYTHONPATH="${extra_path}${PYTHONPATH:+:${PYTHONPATH}}" "${python_path}" - "$@" <<'PY'
+import importlib
+import sys
+
+missing = []
+for module_name in sys.argv[1:]:
+    try:
+        importlib.import_module(module_name)
+    except Exception:
+        missing.append(module_name)
+
+if missing:
+    print(", ".join(missing), file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
+run_klipper_python_script() {
+    local script_path="$1"
+    shift
+
+    local extra_path
+    local python3_path
+    local candidate
+    local candidates=()
+
+    extra_path="$(python_extra_path)"
+    candidates+=("${KAT_PYTHON}")
+    candidates+=("/usr/bin/python3")
+
+    python3_path="$(command -v python3 2>/dev/null || true)"
+    if [ -n "${python3_path}" ]; then
+        candidates+=("${python3_path}")
+    fi
+
+    for candidate in "${candidates[@]}"; do
+        if python_has_modules "${candidate}" "${extra_path}" cffi numpy matplotlib; then
+            PYTHONPATH="${extra_path}${PYTHONPATH:+:${PYTHONPATH}}" "${candidate}" "${script_path}" "$@"
+            return
+        fi
+    done
+
+    echo "ERROR: Could not find a Python environment with cffi, numpy, and matplotlib." >&2
+    echo "Tried KAT_PYTHON=${KAT_PYTHON}, /usr/bin/python3, and python3." >&2
+    echo "" >&2
+    echo "Install Klipper resonance graph dependencies on the printer:" >&2
+    echo "sudo apt update" >&2
+    echo "sudo apt install python3-numpy python3-matplotlib libatlas-base-dev libopenblas-dev" >&2
+    echo "~/klippy-env/bin/pip install -v \"numpy<1.26\"" >&2
+    exit 1
+}
+
 ######################################################################
 # Console helpers
 ######################################################################
