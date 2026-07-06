@@ -30,7 +30,7 @@ KAT focuses on:
 - material-aware print preparation
 - filter and exhaust helpers
 - prime and wipe helpers
-- resonance and belt graph tooling
+- resonance and input shaper graph tooling
 - clear console feedback when features are missing or skipped
 
 KAT should orchestrate existing Klipper/Kalico features, not replace the printer's hardware configuration.
@@ -239,7 +239,8 @@ KAT_TEST_SHELL_COMMAND
 KAT_TEST_RESONANCES_X
 KAT_TEST_RESONANCES_Y
 KAT_TEST_RESONANCES_Z
-KAT_GENERATE_BELT_TENSION_GRAPH
+KAT_GENERATE_SHAPER_GRAPHS
+KAT_GENERATE_SHAPER_GRAPHS_FROM_CSV
 ```
 
 To enable advanced features, add this separate line to `printer.cfg`:
@@ -440,15 +441,16 @@ KAT end print handling uses shared helpers rather than duplicating movement logi
 - Restore idle timeout.
 - Clear KAT print state.
 
-### Resonance and belt tooling
+### Resonance and input shaper tooling
 
 When advanced features are enabled, KAT can run resonance tests and generate graphs from the UI/console:
 
 ```ini
+KAT_GENERATE_SHAPER_GRAPHS
+KAT_GENERATE_SHAPER_GRAPHS_FROM_CSV
 KAT_TEST_RESONANCES_X
 KAT_TEST_RESONANCES_Y
 KAT_TEST_RESONANCES_Z
-KAT_GENERATE_BELT_TENSION_GRAPH
 ```
 
 Expected output location:
@@ -516,7 +518,7 @@ KAT/
     end_print.cfg              END_PRINT flow
     pause_resume.cfg           PAUSE, RESUME, CANCEL_PRINT and filament events
     advanced_features.cfg      Shell-command based advanced features
-    resonance_tools.cfg        Resonance and belt graph commands
+    resonance_tools.cfg        Resonance and input shaper graph commands
     scripts/                   Shell scripts used by advanced features
 ```
 
