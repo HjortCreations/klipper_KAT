@@ -99,6 +99,7 @@ KAT reads these parameters from your slicer start G-code:
 
 - `EXTRUDER_TEMP_OTHER` (stored by KAT for tooling/telemetry use)
 - `PREHEAT_MINUTES` (extra bed/chamber soak time after bed reaches target)
+- `SKEW_PROFILE` (loads a saved `[skew_correction]` profile for print moves)
 
 If a value is missing, KAT uses safe defaults from `KAT/variables.cfg` (or built-in defaults).
 
@@ -112,6 +113,12 @@ Optional extended example:
 
 ```gcode
 START_PRINT EXTRUDER_TEMP=[first_layer_temperature] EXTRUDER_TEMP_OTHER=[nozzle_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] PREHEAT_MINUTES=10
+```
+
+Optional skew profile example:
+
+```gcode
+START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] SKEW_PROFILE=Calilantern
 ```
 
 ---
@@ -440,6 +447,7 @@ KAT end print handling uses shared helpers rather than duplicating movement logi
 - Handle filter and exhaust helpers.
 - Restore idle timeout.
 - Clear KAT print state.
+- Clear active skew correction when `[skew_correction]` is configured.
 
 ### Resonance and input shaper tooling
 
@@ -543,8 +551,10 @@ variable_default_material: '"PLA"'
 variable_start_preheat_temp: 150.0
 variable_start_preheat_minutes: 0.0
 variable_start_wipe_before_z_home: False
+variable_start_skew_profile: "Calilantern"
 variable_pause_park_position: '"front_center"'
 variable_end_print_park_position: '"front_center"'
+variable_end_clear_skew: 1
 ```
 
 The goal is that users should not need to edit the logic macros for normal configuration.
