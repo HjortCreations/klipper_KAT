@@ -31,7 +31,7 @@ echo ""
 echo "Output:"
 echo "${OUTPUT}"
 
-"${GRAPH_ACCELEROMETER}" -c "${NEWZ}" -o "${OUTPUT}"
+"${KAT_PYTHON}" "${GRAPH_ACCELEROMETER}" -c "${NEWZ}" -o "${OUTPUT}"
 
 if [ "${EUID}" -eq 0 ]; then
     chown "${KAT_USERNAME}:${KAT_USERGROUP}" "${OUTPUT}" || true

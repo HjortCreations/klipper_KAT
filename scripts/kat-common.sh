@@ -12,6 +12,7 @@ set -euo pipefail
 # - KAT_PRINTER_DATA_DIR
 # - KAT_KLIPPER_DIR
 # - KAT_OUTPUT_DIR
+# - KAT_PYTHON
 #
 # Default assumptions:
 # - ~/printer_data
@@ -66,6 +67,27 @@ detect_firmware_dir() {
 : "${KAT_PRINTER_DATA_DIR:=${REAL_HOME}/printer_data}"
 : "${KAT_KLIPPER_DIR:=$(detect_firmware_dir)}"
 : "${KAT_OUTPUT_DIR:=${KAT_PRINTER_DATA_DIR}/config/input_shaper}"
+
+detect_python() {
+    if [ -n "${KAT_PYTHON:-}" ]; then
+        echo "${KAT_PYTHON}"
+        return
+    fi
+
+    if [ -x "${REAL_HOME}/klippy-env/bin/python" ]; then
+        echo "${REAL_HOME}/klippy-env/bin/python"
+        return
+    fi
+
+    if [ -x "${REAL_HOME}/klipper-env/bin/python" ]; then
+        echo "${REAL_HOME}/klipper-env/bin/python"
+        return
+    fi
+
+    command -v python3
+}
+
+: "${KAT_PYTHON:=$(detect_python)}"
 
 ######################################################################
 # Console helpers
