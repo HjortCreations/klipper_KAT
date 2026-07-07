@@ -118,12 +118,14 @@ START_PRINT EXTRUDER_TEMP=[first_layer_temperature] EXTRUDER_TEMP_OTHER=[nozzle_
 Optional skew profile example:
 
 ```gcode
-START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] SKEW_PROFILE=Calilantern
+START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] SKEW_PROFILE=my_skew_profile
 ```
 
 Skew correction is intentionally not enabled by KAT core. Add `[skew_correction]`
 to your printer configuration only if you have calibrated and want to use Klipper
-skew profiles.
+skew profiles. To load a profile automatically, set your own profile name in
+`variable_start_skew_profile`; KAT clears active skew before homing and loads the
+configured profile later in `START_PRINT`.
 
 ---
 
@@ -559,6 +561,7 @@ variable_start_preheat_temp: 150.0
 variable_start_preheat_minutes: 0.0
 variable_start_wipe_before_z_home: False
 variable_start_skew_profile: ""
+variable_start_clear_skew: 1
 variable_pause_park_position: '"front_center"'
 variable_end_print_park_position: '"front_center"'
 variable_end_clear_skew: 1
