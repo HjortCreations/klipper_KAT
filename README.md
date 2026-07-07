@@ -99,7 +99,7 @@ KAT reads these parameters from your slicer start G-code:
 
 - `EXTRUDER_TEMP_OTHER` (stored by KAT for tooling/telemetry use)
 - `PREHEAT_MINUTES` (extra bed/chamber soak time after bed reaches target)
-- `SKEW_PROFILE` (loads a saved `[skew_correction]` profile for print moves)
+- `SKEW_PROFILE` (loads a saved `[skew_correction]` profile for print moves when the printer config enables `[skew_correction]`)
 
 If a value is missing, KAT uses safe defaults from `KAT/variables.cfg` (or built-in defaults).
 
@@ -120,6 +120,10 @@ Optional skew profile example:
 ```gcode
 START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] SKEW_PROFILE=Calilantern
 ```
+
+Skew correction is intentionally not enabled by KAT core. Add `[skew_correction]`
+to your printer configuration only if you have calibrated and want to use Klipper
+skew profiles.
 
 ---
 
@@ -286,7 +290,6 @@ Core KAT provides and uses common Klipper modules such as:
 [force_move]
 [idle_timeout]
 [exclude_object]
-[skew_correction]
 [gcode_arcs]
 ```
 
@@ -555,7 +558,7 @@ variable_default_material: '"PLA"'
 variable_start_preheat_temp: 150.0
 variable_start_preheat_minutes: 0.0
 variable_start_wipe_before_z_home: False
-variable_start_skew_profile: "Calilantern"
+variable_start_skew_profile: ""
 variable_pause_park_position: '"front_center"'
 variable_end_print_park_position: '"front_center"'
 variable_end_clear_skew: 1
