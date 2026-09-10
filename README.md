@@ -437,6 +437,7 @@ KAT pause handling is designed for real print recovery:
 - Restore hotend temperature before resuming motion.
 - Restore part cooling fan before resuming motion.
 - Restore pause retract if one was applied.
+- Return to the captured print position at half of `[printer] max_velocity`, capped at 200 mm/s.
 - Check enabled filament switch sensors before resume.
 - Avoid automatic load/unload behavior unless the user explicitly configures that behavior.
 
