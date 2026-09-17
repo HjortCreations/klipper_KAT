@@ -149,10 +149,14 @@ run_klipper_python_script() {
     echo "ERROR: Could not find a Python environment with cffi, numpy, and matplotlib." >&2
     echo "Tried KAT_PYTHON=${KAT_PYTHON}, /usr/bin/python3, and python3." >&2
     echo "" >&2
-    echo "Install Klipper resonance graph dependencies on the printer:" >&2
+    echo "KAT does not install the optional Python packages needed for resonance graphs." >&2
+    echo "Install Kalico/Klipper resonance graph dependencies on the printer:" >&2
     echo "sudo apt update" >&2
-    echo "sudo apt install python3-numpy python3-matplotlib libatlas-base-dev libopenblas-dev" >&2
-    echo "~/klippy-env/bin/pip install -v \"numpy<1.26\"" >&2
+    echo "sudo apt install libatlas-base-dev libopenblas-dev" >&2
+    echo "~/klippy-env/bin/pip install -v numpy matplotlib" >&2
+    echo "~/klippy-env/bin/python -c 'import cffi, numpy, matplotlib'" >&2
+    echo "Kalico: https://docs.kalico.gg/Measuring_Resonances.html" >&2
+    echo "Klipper: https://www.klipper3d.org/Measuring_Resonances.html" >&2
     exit 1
 }
 

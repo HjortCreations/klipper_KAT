@@ -249,6 +249,7 @@ Advanced features currently include:
 
 ```text
 KAT_TEST_SHELL_COMMAND
+KAT_RESONANCE_REQUIREMENTS
 KAT_TEST_RESONANCES_X
 KAT_TEST_RESONANCES_Y
 KAT_TEST_RESONANCES_Z
@@ -316,6 +317,29 @@ and an accelerometer configuration such as:
 or equivalent.
 
 KAT does not define accelerometers or resonance tester hardware. That remains machine-specific and belongs in `printer.cfg`.
+
+### Resonance graph dependencies
+
+KAT provides the resonance-test and graph-generation workflows, but it does **not** install Kalico/Klipper's optional Python analysis packages. A resonance test can therefore create its CSV file successfully while graph generation still fails.
+
+Before using the graph commands, install the dependencies for the firmware environment. For a standard Kalico or Klipper installation:
+
+```bash
+sudo apt update
+sudo apt install libatlas-base-dev libopenblas-dev
+~/klippy-env/bin/pip install -v numpy matplotlib
+```
+
+Then verify that the environment used by Klipper can import the required modules:
+
+```bash
+~/klippy-env/bin/python -c "import cffi, numpy, matplotlib"
+```
+
+If the Python environment is in another location, use that environment's `pip` and `python` instead. See the firmware documentation for current installation details:
+
+- Kalico: <https://docs.kalico.gg/Measuring_Resonances.html>
+- Klipper: <https://www.klipper3d.org/Measuring_Resonances.html>
 
 ---
 
@@ -472,6 +496,8 @@ Expected output location:
 ```text
 ~/printer_data/config/input_shaper/
 ```
+
+Run `KAT_RESONANCE_REQUIREMENTS` in the console to show the setup requirements. This is particularly useful when a resonance test succeeds but graph generation reports missing Python modules.
 
 If `[resonance_tester]` is not configured, KAT prints a help message and points to:
 
