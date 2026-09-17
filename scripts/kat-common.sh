@@ -13,6 +13,7 @@ set -euo pipefail
 # - KAT_KLIPPER_DIR
 # - KAT_OUTPUT_DIR
 # - KAT_PYTHON
+# - KAT_GRAPH_URL_BASE
 #
 # Default assumptions:
 # - ~/printer_data
@@ -67,6 +68,23 @@ detect_firmware_dir() {
 : "${KAT_PRINTER_DATA_DIR:=${REAL_HOME}/printer_data}"
 : "${KAT_KLIPPER_DIR:=$(detect_firmware_dir)}"
 : "${KAT_OUTPUT_DIR:=${KAT_PRINTER_DATA_DIR}/config/input_shaper}"
+
+detect_graph_url_base() {
+    if [ -n "${KAT_GRAPH_URL_BASE:-}" ]; then
+        printf '%s\n' "${KAT_GRAPH_URL_BASE%/}"
+        return
+    fi
+
+    # Moonraker's file endpoint is normally proxied by Mainsail on port 80.
+    # Use the first non-loopback IPv4 address as a useful local-network default.
+    local address
+    address="$(hostname -I 2>/dev/null | tr ' ' '\n' | awk '/^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/ { print; exit }')"
+    if [ -n "${address}" ]; then
+        printf 'http://%s\n' "${address}"
+    fi
+}
+
+: "${KAT_GRAPH_URL_BASE:=$(detect_graph_url_base)}"
 
 detect_python() {
     if [ -n "${KAT_PYTHON:-}" ]; then
@@ -171,13 +189,23 @@ report_status() {
 
 print_result() {
     local output="$1"
+    local config_dir="${KAT_PRINTER_DATA_DIR}/config/"
+    local relative_path
 
     echo ""
     echo "KAT graph generated:"
     echo "${output}"
-    echo ""
-    echo "Open the file from the Klipper/Mainsail config file browser if your UI exposes:"
-    echo "${KAT_OUTPUT_DIR}"
+
+    # Moonraker exposes files below printer_data/config at /server/files/config.
+    # Mainsail converts full http(s) URLs in console output into clickable links.
+    if [[ "${output}" == "${config_dir}"* ]] && [ -n "${KAT_GRAPH_URL_BASE}" ]; then
+        relative_path="${output#"${config_dir}"}"
+        echo "Open graph in Mainsail:"
+        echo "${KAT_GRAPH_URL_BASE}/server/files/config/${relative_path}"
+    else
+        echo "Open the file from the Klipper/Mainsail config file browser:"
+        echo "${KAT_OUTPUT_DIR}"
+    fi
 }
 
 ######################################################################

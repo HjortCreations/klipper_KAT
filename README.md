@@ -484,18 +484,25 @@ KAT end print handling uses shared helpers rather than duplicating movement logi
 When advanced features are enabled, KAT can run resonance tests and generate graphs from the UI/console:
 
 ```ini
-KAT_GENERATE_SHAPER_GRAPHS
-KAT_GENERATE_SHAPER_GRAPHS_FROM_CSV
+KAT_GENERATE_SHAPER_GRAPHS                  # X and Y, the default
+KAT_GENERATE_SHAPER_GRAPHS AXIS=X
+KAT_GENERATE_SHAPER_GRAPHS AXIS=Y
+KAT_GENERATE_SHAPER_GRAPHS_FROM_CSV          # graph existing X and Y CSV files
+KAT_GENERATE_SHAPER_GRAPHS_FROM_CSV AXIS=X
 KAT_TEST_RESONANCES_X
 KAT_TEST_RESONANCES_Y
 KAT_TEST_RESONANCES_Z
 ```
+
+`KAT_GENERATE_SHAPER_GRAPHS` is the normal one-click workflow. In Mainsail, its `AXIS` parameter gives the macro a small options arrow; leaving the value empty runs both X and Y. Before a test KAT homes when required, then runs `QUAD_GANTRY_LEVEL` or `Z_TILT_ADJUST` when configured. It re-homes Z afterward because leveling changes the physical reference plane. Set `variable_resonance_use_gantry_level: 0` in `KAT/variables.cfg` only when you deliberately want to skip that preparation.
 
 Expected output location:
 
 ```text
 ~/printer_data/config/input_shaper/
 ```
+
+After each graph KAT prints the graph's full Moonraker file URL in the console. Mainsail renders that URL as a clickable link, opening the PNG in the browser. For an unusual network or reverse-proxy setup, set the `KAT_GRAPH_URL_BASE` environment variable for the Klipper service to the public base URL used to access the printer.
 
 Run `KAT_RESONANCE_REQUIREMENTS` in the console to show the setup requirements. This is particularly useful when a resonance test succeeds but graph generation reports missing Python modules.
 
