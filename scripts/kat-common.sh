@@ -14,6 +14,8 @@ set -euo pipefail
 # - KAT_OUTPUT_DIR
 # - KAT_PYTHON
 # - KAT_GRAPH_URL_BASE
+# - KAT_GRAPH_NICE
+# - KAT_GRAPH_MAX_THREADS
 #
 # Default assumptions:
 # - ~/printer_data
@@ -86,6 +88,11 @@ detect_graph_url_base() {
 
 : "${KAT_GRAPH_URL_BASE:=$(detect_graph_url_base)}"
 
+# Graph calculation is CPU-intensive, especially on Raspberry Pi hosts.
+# Keep the Klipper process responsive enough to meet MCU timing deadlines.
+: "${KAT_GRAPH_NICE:=19}"
+: "${KAT_GRAPH_MAX_THREADS:=1}"
+
 detect_python() {
     if [ -n "${KAT_PYTHON:-}" ]; then
         echo "${KAT_PYTHON}"
@@ -147,6 +154,7 @@ run_klipper_python_script() {
     local python3_path
     local candidate
     local candidates=()
+    local execution_command=()
 
     extra_path="$(python_extra_path)"
     candidates+=("${KAT_PYTHON}")
@@ -159,7 +167,23 @@ run_klipper_python_script() {
 
     for candidate in "${candidates[@]}"; do
         if python_has_modules "${candidate}" "${extra_path}" cffi numpy matplotlib; then
-            PYTHONPATH="${extra_path}${PYTHONPATH:+:${PYTHONPATH}}" "${candidate}" "${script_path}" "$@"
+            # The graph renderer must not starve Klipper's MCU communication.
+            # NumPy/OpenBLAS inherits these limits, and all graph-renderer child
+            # processes inherit the low scheduling priority.
+            if command -v nice >/dev/null 2>&1; then
+                execution_command=(nice -n "${KAT_GRAPH_NICE}" "${candidate}")
+            else
+                execution_command=("${candidate}")
+            fi
+
+            PYTHONPATH="${extra_path}${PYTHONPATH:+:${PYTHONPATH}}" \
+                OPENBLAS_NUM_THREADS="${KAT_GRAPH_MAX_THREADS}" \
+                OMP_NUM_THREADS="${KAT_GRAPH_MAX_THREADS}" \
+                MKL_NUM_THREADS="${KAT_GRAPH_MAX_THREADS}" \
+                NUMEXPR_NUM_THREADS="${KAT_GRAPH_MAX_THREADS}" \
+                VECLIB_MAXIMUM_THREADS="${KAT_GRAPH_MAX_THREADS}" \
+                BLIS_NUM_THREADS="${KAT_GRAPH_MAX_THREADS}" \
+                "${execution_command[@]}" "${script_path}" "$@"
             return
         fi
     done

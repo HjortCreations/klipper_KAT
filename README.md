@@ -504,6 +504,8 @@ Expected output location:
 
 After each graph KAT prints the graph's full Moonraker file URL in the console. Mainsail renders that URL as a clickable link, opening the PNG in the browser. For an unusual network or reverse-proxy setup, set the `KAT_GRAPH_URL_BASE` environment variable for the Klipper service to the public base URL used to access the printer.
 
+Graph generation is deliberately kept low-priority and limited to one numerical-computation thread. This protects Klipper's real-time MCU communication on Raspberry Pi hosts, where a multi-core NumPy calculation can otherwise trigger `Timer too close`. The defaults are `KAT_GRAPH_NICE=19` and `KAT_GRAPH_MAX_THREADS=1`; only override them on a host with known CPU headroom.
+
 Run `KAT_RESONANCE_REQUIREMENTS` in the console to show the setup requirements. This is particularly useful when a resonance test succeeds but graph generation reports missing Python modules.
 
 If `[resonance_tester]` is not configured, KAT prints a help message and points to:
