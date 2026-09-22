@@ -434,7 +434,9 @@ KAT_LEVEL_GANTRY
 KAT_WIPE_BEFORE_Z_HOME
 KAT_HOME_Z_AFTER_LEVEL
 KAT_BED_MESH
-final nozzle heat
+start final nozzle heat without waiting
+smart park at the prime position
+wait for final nozzle temperature
 prime / wipe
 ```
 
@@ -448,6 +450,7 @@ Important behavior:
 - When `[beacon]` is configured, the final Z home uses `G28 Z METHOD=CONTACT CALIBRATE=1`.
 - Other probes use normal `G28 Z`, allowing the printer configuration to decide how Z homing works.
 - Optional nozzle wipe can be enabled before the final Z home for TAP, piezo, Beacon contact, or other nozzle-based probing systems.
+- Final nozzle heating starts immediately after bed meshing. The toolhead parks at the prime position while heating, and waits for the target temperature there before priming.
 
 ### PAUSE / RESUME / CANCEL
 
