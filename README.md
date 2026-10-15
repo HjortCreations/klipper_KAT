@@ -85,47 +85,65 @@ Add this single line to your existing `printer.cfg`:
 
 Restart Klipper.
 
-### 3. Configure slicer START_PRINT parameters
+### 3. Configure slicer start and end G-code
 
-KAT reads these parameters from your slicer start G-code:
+KAT provides both `START_PRINT` and `END_PRINT`. Add the calls below to your slicer's **printer profile** so every sliced file runs KAT's preparation and shutdown flows.
 
-**Recommended (send these):**
+Open the start/end G-code settings:
 
-- `EXTRUDER_TEMP` (first-layer nozzle temp)
-- `BED_TEMP` (first-layer bed temp)
-- `MATERIAL` (for airflow/material behavior, e.g. `PLA`, `PETG`, `ABS`)
+- **OrcaSlicer:** Printer settings → Machine G-code → **Machine start G-code** / **Machine end G-code**.
+- **PrusaSlicer:** Printer Settings → Custom G-code → **Start G-code** / **End G-code**.
 
-**Optional:**
+Enable **relative extrusion** in the printer profile; KAT uses `M83` during print preparation.
 
-- `EXTRUDER_TEMP_OTHER` (stored by KAT for tooling/telemetry use)
-- `PREHEAT_MINUTES` (extra bed/chamber soak time after bed reaches target)
-- `SKEW_PROFILE` (loads a saved `[skew_correction]` profile for print moves when the printer config enables `[skew_correction]`)
+#### Start G-code
 
-If a value is missing, KAT uses safe defaults from `KAT/variables.cfg` (or built-in defaults).
-
-Example start G-code line in slicer:
+For OrcaSlicer or PrusaSlicer, paste this into the **start G-code** field:
 
 ```gcode
 START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type]
 ```
 
-Optional extended example:
+The slicer replaces the placeholders with the first-layer nozzle temperature, first-layer bed temperature, and material from the selected filament profile. Other slicers need their own placeholder syntax; keep the KAT parameter names shown above. See the [OrcaSlicer placeholder reference](https://github.com/OrcaSlicer/OrcaSlicer/wiki/built_in_placeholders_variables) and [PrusaSlicer macro reference](https://help.prusa3d.com/article/macros_1775).
+
+`START_PRINT` handles heating, optional heat soak, homing, available gantry leveling, Z homing, bed mesh, and priming according to the printer configuration and KAT settings. Replace the old start routine so these steps run once through KAT.
+
+#### End G-code
+
+Paste this into the **end G-code** field:
 
 ```gcode
-START_PRINT EXTRUDER_TEMP=[first_layer_temperature] EXTRUDER_TEMP_OTHER=[nozzle_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] PREHEAT_MINUTES=10
+END_PRINT
 ```
 
-Optional skew profile example:
+`END_PRINT` takes no slicer parameters. It waits for queued moves, retracts if the nozzle can extrude, turns off the nozzle and configured bed heater, moves Z to the configured end height, parks, stops cooling/filter/exhaust fans, and resets KAT pause state and standby timeout. Replace the old end routine with this call so retract and parking moves run once through KAT.
+
+Normal completion uses `END_PRINT`. Canceling uses KAT's existing `CANCEL_PRINT`, which reuses the end flow. KAT also connects file-print errors to `CANCEL_PRINT` through its `[virtual_sdcard]` configuration.
+
+Save the printer profile and re-slice a model. Check the exported G-code for one `START_PRINT` call with resolved values at the start and one `END_PRINT` call at the end. Check for any heating or movement commands still added by the slicer that would repeat KAT's preparation or shutdown steps.
+
+#### START_PRINT parameters and optional settings
+
+| Parameter | Purpose | When omitted |
+| --- | --- | --- |
+| `EXTRUDER_TEMP` | First-layer nozzle temperature in °C; send from the slicer. | `220` °C |
+| `BED_TEMP` | First-layer bed temperature in °C; send from the slicer. | `60` °C |
+| `MATERIAL` | Material type, such as `PLA`, `PETG`, `ABS`, or `ASA`; send from the slicer. | `variable_default_material` (default `PLA`) |
+| `PREHEAT_MINUTES` | Extra heat soak after the bed reaches its target, in minutes. | `variable_start_preheat_minutes` (default `0`) |
+| `SKEW_PROFILE` | Saved skew profile to load for print moves; requires `[skew_correction]`. | `variable_start_skew_profile` (default empty) |
+| `EXTRUDER_TEMP_OTHER` | Other-layer nozzle temperature stored for tooling/telemetry; it does not schedule a temperature change. | Same as `EXTRUDER_TEMP` |
+
+Always send the temperatures for the selected filament. The fallback values are built into the macro and may not suit your material. The slicer controls temperature changes for later layers.
+
+For an extra ten-minute heat soak and a calibrated skew profile, use this **instead of** the basic start line:
 
 ```gcode
-START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] SKEW_PROFILE=my_skew_profile
+START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_temperature] MATERIAL=[filament_type] PREHEAT_MINUTES=10 SKEW_PROFILE=my_skew_profile
 ```
 
-Skew correction is intentionally not enabled by KAT core. Add `[skew_correction]`
-to your printer configuration only if you have calibrated and want to use Klipper
-skew profiles. To load a profile automatically, set your own profile name in
-`variable_start_skew_profile`; KAT clears active skew before homing and loads the
-configured profile later in `START_PRINT`.
+Replace `my_skew_profile` with your saved profile name, or omit `SKEW_PROFILE` if unused. KAT core does not enable `[skew_correction]`; add it to your printer configuration only when using calibrated skew profiles. KAT clears active skew before homing and loads the selected profile before priming and printing.
+
+For persistent start/end settings, such as heat soak time, skew profile, retract, and park position, put KAT variable overrides in your own `printer.cfg` after the KAT include. See [Configuration philosophy](#configuration-philosophy).
 
 ---
 
@@ -423,6 +441,8 @@ See `include_example.cfg` for examples.
 
 ### START_PRINT
 
+For the slicer start and end G-code to paste into your printer profile, see [Configure slicer start and end G-code](#3-configure-slicer-start-and-end-g-code).
+
 KAT provides a capability-aware start flow:
 
 ```text
@@ -470,16 +490,19 @@ KAT pause handling is designed for real print recovery:
 
 ### END_PRINT
 
+Use `END_PRINT` in the slicer's end G-code field; see [Configure slicer start and end G-code](#3-configure-slicer-start-and-end-g-code).
+
 KAT end print handling uses shared helpers rather than duplicating movement logic:
 
-- Turn off heaters safely.
+- Wait for queued moves to finish.
 - Retract if possible.
+- Turn off the nozzle and configured bed heater.
 - Move Z to a safe end-print height.
 - Park the toolhead using a named park position.
 - Turn off part cooling.
 - Handle filter and exhaust helpers.
 - Restore idle timeout.
-- Clear KAT print state.
+- Clear KAT pause state.
 - Clear active skew correction when `[skew_correction]` is configured.
 
 ### Resonance and input shaper tooling
