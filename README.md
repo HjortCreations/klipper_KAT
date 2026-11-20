@@ -28,6 +28,7 @@ KAT focuses on:
 - PAUSE / RESUME / CANCEL_PRINT
 - safe parking and movement helpers
 - material-aware print preparation
+- optional persistent print Z compensation after probe calibration
 - filter and exhaust helpers
 - prime and wipe helpers
 - resonance and input shaper graph tooling
@@ -144,6 +145,36 @@ START_PRINT EXTRUDER_TEMP=[first_layer_temperature] BED_TEMP=[first_layer_bed_te
 Replace `my_skew_profile` with your saved profile name, or omit `SKEW_PROFILE` if unused. KAT core does not enable `[skew_correction]`; add it to your printer configuration only when using calibrated skew profiles. KAT clears active skew before homing and loads the selected profile before priming and printing.
 
 For persistent start/end settings, such as heat soak time, skew profile, retract, and park position, put KAT variable overrides in your own `printer.cfg` after the KAT include. See [Configuration philosophy](#configuration-philosophy).
+
+---
+
+## Persistent print Z offset
+
+KAT can save a user first-layer correction and restore it after print-start
+calibration, including a new Beacon Contact model. This is **disabled by default**.
+
+After the KAT includes in your own `printer.cfg`, configure:
+
+```ini
+[save_variables]
+filename: ~/printer_data/config/kat-variables.ini
+
+[gcode_macro KAT]
+variable_start_use_saved_z_offset: True
+```
+
+Reuse an existing `[save_variables]` section and file if already configured.
+Keep machine state outside the KAT checkout. Restart only while idle.
+
+After adjusting a supervised first layer, run `KAT_SAVE_Z_OFFSET` to save the
+current total runtime Z offset. `KAT_SHOW_Z_OFFSET` reports saved and active
+values. Saving needs no `SAVE_CONFIG` or restart. The next `START_PRINT` clears
+the previous runtime correction before calibration and reapplies the saved
+absolute value after calibration/mesh and final heating, before priming.
+
+Each printer keeps its own correction; no Herkules value is supplied as a default.
+See [Persistent print Z offset](PERSISTENT_Z_OFFSET.md) for explicit-value commands,
+limits, custom starts, competing offset sources, disabling and verification.
 
 ---
 
@@ -446,6 +477,7 @@ For the slicer start and end G-code to paste into your printer profile, see [Con
 KAT provides a capability-aware start flow:
 
 ```text
+validate/reset saved print Z correction (opt-in)
 bed heat and optional heat soak
 material state
 filter / exhaust behavior
@@ -457,6 +489,7 @@ KAT_BED_MESH
 start final nozzle heat without waiting
 smart park at the prime position
 wait for final nozzle temperature
+apply saved print Z correction (opt-in)
 prime / wipe
 ```
 
@@ -584,6 +617,8 @@ KAT/
     core_features.cfg          Main KAT core entrypoint
     klipper_features.cfg       Baseline Klipper modules used by KAT
     variables.cfg              Shared KAT variables and user settings
+    z_offset.cfg               Opt-in persistent print Z compensation
+    PERSISTENT_Z_OFFSET.md      Setup, commands and compatibility notes
     temperature_control.cfg    Temperature command overrides and helpers
     fan_control.cfg            Filter and exhaust helpers
     kat_helpers.cfg            Shared movement, homing, park, and safety helpers
