@@ -23,10 +23,11 @@ def fail(message):
 
 
 class Harness:
-    def __init__(self, path, enabled=True, storage=True):
+    def __init__(self, path, enabled=True, storage=True, thermal=None):
         self.path = path
         self.enabled = enabled
         self.storage = storage
+        self.thermal = thermal
         self.limit = 1.0
         self.active = 0.0
         self.variables = json.loads(path.read_text()) if path.exists() else {}
@@ -45,6 +46,8 @@ class Harness:
                    'gcode_move': SimpleNamespace(homing_origin=SimpleNamespace(z=self.active))}
         if self.storage:
             printer['save_variables'] = SimpleNamespace(variables=self.variables)
+        if self.thermal is not None:
+            printer['kat_beacon_temperature'] = self.thermal
         # Render to completion before executing any command, matching Klipper macro semantics.
         rendered = self.templates[name].render(printer=printer, params=params,
                                                action_raise_error=fail)
@@ -62,7 +65,7 @@ class Harness:
                 assert args.get('MOVE') == '0', 'A test template attempted physical movement'
                 assert 'Z_ADJUST' not in args, 'Saved compensation must be absolute'
                 self.active = float(args['Z'])
-            elif not line.startswith('RESPOND '):
+            elif not line.startswith('RESPOND ') and line != 'KAT_APPLY_NOZZLE_TEMP_OFFSET':
                 raise AssertionError('Unexpected emitted command: ' + line)
         return rendered
 

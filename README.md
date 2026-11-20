@@ -178,6 +178,22 @@ limits, custom starts, competing offset sources, disabling and verification.
 
 ---
 
+## Experimental Beacon temperature calibration
+
+An optional experiment measures nozzle expansion with two low/high temperature
+cycles (150/250 °C by default), using median Beacon Contact samples near the
+coordinate-minimum bed corner. The measurement point accounts for travel limits,
+usable bed bounds and the Beacon offset, with circular-bed geometry also supported.
+
+It keeps thermal compensation separate from the saved user Z correction.
+The native extra must be installed and configured explicitly; it is not part
+of the default core installation. No physical trials of this experiment have
+been completed yet. See [the experimental guide](experimental/beacon_temperature/README.md)
+for installation, a preview with no movement/heating, surface requirements,
+home-machine tests and removal.
+
+---
+
 ## Updating KAT
 
 If KAT was installed using the recommended Git clone method, it can be updated with:

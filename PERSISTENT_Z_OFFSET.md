@@ -24,7 +24,7 @@ If the machine already has `[save_variables]`, reuse that section and its existi
 
 | Command | Behaviour |
 |---|---|
-| `KAT_SAVE_Z_OFFSET` | Save the **current total runtime Z offset** as an absolute value |
+| `KAT_SAVE_Z_OFFSET` | Save the **current runtime Z correction**, less the optional extra's thermal contribution, as an absolute user value |
 | `KAT_SAVE_Z_OFFSET Z=0.32` | Save exactly +0.32 mm for future application; does not add 0.32 to a previous value |
 | `KAT_SAVE_Z_OFFSET Z=0` | Save zero compensation |
 | `KAT_SHOW_Z_OFFSET` | Show saved value, active total and whether print-start integration is enabled |
@@ -36,7 +36,7 @@ Unexpected parameters are rejected. For example, use `Z=0.32`, not `OFFSET=0.32`
 
 Positive values increase nozzle-to-bed clearance on subsequent print moves. Do not copy a value from another machine or add the same correction to both the probe model and KAT.
 
-The unqualified save captures the total runtime offset. This feature does not separate independent slicer/material/thermal/named offsets. If other systems contribute to that total, account for them explicitly before saving. It is deliberately not a full RatOS named-offset replacement.
+The unqualified save captures the total runtime offset. If the optional [experimental Beacon temperature extra](experimental/beacon_temperature/README.md) is installed, its tracked applied thermal contribution is subtracted first, so only the user correction is saved. Other independent slicer/material/named offsets are not separated; account for them explicitly before saving. This is deliberately not a full RatOS named-offset replacement.
 
 ## Print lifecycle
 
@@ -75,4 +75,4 @@ python -m pip install -r tests/requirements.txt
 python tests/test_z_offset.py
 ```
 
-The 13 tests render this checkout's actual templates with a simulated printer and temporary storage. They cover persistence/reconstruction, repeated saving/application, invalid inputs and limits, opt-out without storage, status reporting and lifecycle hook ordering. They do not connect to a printer. GitHub Actions runs the suite on pushes and pull requests. On Herkules the installed Kalico Python environment already supplies Jinja2, so no runtime packages were installed for the trial.
+The tests render this checkout's actual templates with a simulated printer and temporary storage. They cover persistence/reconstruction, repeated saving/application, invalid inputs and limits, opt-out without storage, status reporting and lifecycle hook ordering. The experimental suite also covers thermal/user separation. They do not connect to a printer. GitHub Actions runs all tests on pushes and pull requests using `python -m unittest discover -s tests -v`. On Herkules the installed Kalico Python environment already supplies Jinja2, so no runtime packages were installed for the trial.
